@@ -30,6 +30,7 @@
 #pragma once
 
 #include <functional>
+#include <list>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -61,9 +62,15 @@ namespace Bren
 		/** Type definition of state function */
 		typedef std::function<void(HANDLER *)> statefunc;
 
+		/** Type definition for callback function on state change */
+		typedef std::function<bool(const STATE, const std::string &)> callbackfunc_t;
+
 		protected:
 		/// Flag to keep track of whether we're active in handling an event
 		bool active_;
+
+		/// List of callback functions to call upon state changes
+		std::list<callbackfunc_t> callbacks_;
 
 		/// Final end state in which resources should be released
 		const STATE end_;
@@ -95,6 +102,21 @@ namespace Bren
 
 		/// List of allowed transitions
 		std::unordered_map<STATE, std::unordered_map<EVENT, transTarget> > trans_;
+
+		/** Call all callback functions and remove them if they return false */
+		void call_() {
+			auto it = callbacks_.begin();
+			while (it != callbacks_.end()) {
+				if ( (*it)(state_, name_(state_)) == false) {
+					auto next = it;
+					next++;
+					callbacks_.erase(it);
+					it = next;
+				} else {
+					it++;
+				}
+			}
+		}
 
 		/** Lookup the name of an event.
 		 * @param event_i Event to lookup the name for
@@ -151,18 +173,21 @@ namespace Bren
 							"{:s} completed!!", name_(event_i), name_(from_i), name_(to_i));
 						lck.lock();
 						state_ = to_i;
+						call_();
 					} else {
 						FI("onTransition function on event {event:s} from state {from:s} to {to:s} "
 							"failed, staying at {from:s}", fmt::arg("event", name_(event_i)),
 							fmt::arg("from", name_(from_i)), fmt::arg("to", name_(to_i)));
 						lck.lock();
 						state_ = from_i;
+						call_();
 					}
 				} else {
 					FD("No onTransition function, so changing state from {:s} to {:s} on {:s}",
 						name_(from_i), name_(to_i), name_(event_i));
 					lck.lock();
 					state_ = to_i;
+					call_();
 				}
 				lck.unlock();
 
@@ -180,6 +205,7 @@ namespace Bren
 			lck.lock();
 			if (state_ == end_) obj_.reset();
 			active_ = false;
+			callbacks_.clear();
 			lck.unlock();
 		}
 
@@ -315,6 +341,18 @@ namespace Bren
 		void obj(std::shared_ptr<HANDLER> obj_i)
 		{
 			obj_ = obj_i;
+		}
+
+		/** Register a function as observer of the internal state.
+		 * @param func Function to call when state changes. Function receives enum and string of new
+		 * state and should return true if it wants to keep being called on state changes, false if
+		 * not. */
+		void observe(callbackfunc_t func)
+		{
+			std::lock_guard<std::mutex> lck(mux_);
+			if (func(state_, name_(state_))) {
+				callbacks_.push_back(func);
+			}
 		}
 
 		/** Get current state.
