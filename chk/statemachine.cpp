@@ -28,6 +28,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #include <cstdint>
+#include <memory>
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <bren/StateMachine.hpp>
@@ -40,8 +41,13 @@ CPPUNIT_TEST_SUITE_REGISTRATION(CHECKNAME);
 
 class CHECKNAME : public CppUnit::TestFixture {
 	CPPUNIT_TEST_SUITE(CHECKNAME);
-	CPPUNIT_TEST(fdleaks);
+	CPPUNIT_TEST(basics);
+	CPPUNIT_TEST(funccall);
 	CPPUNIT_TEST_SUITE_END();
+
+	protected:
+	/// State machine instance for easy setup and teardown
+	std::unique_ptr<Bren::StateMachine<checkState, checkEvent, CHECKNAME>> smup;
 
 	public:
 	enum class checkState : uint8_t {
@@ -57,11 +63,65 @@ class CHECKNAME : public CppUnit::TestFixture {
 
 	friend class Bren::StateMachine<checkState, checkEvent, CHECKNAME>;
 
+	void setUp()
+	{
+		smup.reset(
+			new Bren::StateMachine<checkState, checkEvent, CHECKNAME>(
+				checkState::Start, checkState::End
+			)
+		);
+		smup->transition(checkState::Start, checkEvent::Event, checkState:Inter, nullptr, nullptr);
+		smup->transition(checkState::Start, checkEvent::Quit, checkState:End, nullptr, nullptr);
+		smup->transition(checkState::Inter, checkEvent::Quit, checkState:End, nullptr, nullptr);
+	}
+
+	void tearDown()
+	{
+		smup.reset();
+	}
+
+	void basics()
+	{
+		// Check start state
+		CPPUNIT_ASSERT_EQUAL(checkState::Start, smup->state());
+
+		// Don't allow transitions from end state
+		CPPUNIT_ASSERT_THROW(
+			smup->transition(
+				checkState::End, checkEvent::Event, checkState::Inter, nullptr, nullptr
+			),
+			std::invalid_argument
+		);
+		CPPUNIT_ASSERT_EQUAL(checkState::Start, smup->state());
+
+		// Check happy flow
+		CPPUNIT_ASSERT(smup->event(checkEvent::Event, true));
+		CPPUNIT_ASSERT_EQUAL(checkState::Inter, smup->state());
+
+		// Invalid event returns false and keeps state
+		CPPUNIT_ASSERT_EQUAL(false, smup->event(checkEvent::Event, true));
+		CPPUNIT_ASSERT_EQUAL(checkState::Inter, smup->state());
+
+		// Happy flow to end state
+		CPPUNIT_ASSERT(smup->event(checkEvent::Quit, true));
+		CPPUNIT_ASSERT_EQUAL(checkState::End, smup->state());
+
+		// Don't leave end state
+		CPPUNIT_ASSERT_EQUAL(false, smup->event(checkEvent::Event, true));
+		CPPUNIT_ASSERT_EQUAL(checkState::End, smup->state());
+		CPPUNIT_ASSERT_EQUAL(false, smup->event(checkEvent::Quit, true));
+		CPPUNIT_ASSERT_EQUAL(checkState::End, smup->state());
+
+		// Throw when adding transition in end state
+		CPPUNIT_ASSERT_THROW(
+			smup->transition(
+				checkState::Inter, checkEvent::Event, checkState::End, nullptr, nullptr
+			),
+			std::logic_error
+		);
+	}
+
 	void funccall()
 	{
-		Bren::StateMachine<checkState, checkEvent, CHECKNAME> sm;
-		sm.transition(checkState::Start, checkEvent::Event, checkState:Inter, nullptr, nullptr);
-		sm.transition(checkState::Start, checkEvent::Quit, checkState:End, nullptr, nullptr);
-		sm.transition(checkState::Inter, checkEvent::Quit, checkState:End, nullptr, nullptr);
 
 	}
