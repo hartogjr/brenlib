@@ -1,7 +1,6 @@
-/* BSD 3-Clause License
- *
- * Copyright (c) 2025, Bren de Hartog <bren@dehartog.name>
- * All rights reserved.
+/** @author   Bren de Hartog <bren@dehartog.name>
+ * @copyright Copyright (c) 2026, Bren de Hartog. All rights reserved.
+ * @license   This project is licensed under 3-clause BSD license:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:

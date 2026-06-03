@@ -27,32 +27,41 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-/* This code shamelessly copied from:
- * http://www.sbin.org/doc/HOWTO/C++Programming-HOWTO-7.html */
+#include <cstdint>
+#include <cppunit/TestFixture.h>
+#include <cppunit/extensions/HelperMacros.h>
+#include <bren/StateMachine.hpp>
 
-#include <string>
-#include <bren/Tokenize.hpp>
+#define CHECKNAME StateMachineCheck
 
-void Tokenize(
-	const std::string & str,
-	std::vector<std::string> & tokens,
-	const std::string & delimiters
-) {
-	// Skip delimiters at beginning.
-	std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
+class CHECKNAME;
 
-	// Find first "non-delimiter".
-	std::string::size_type pos = str.find_first_of(delimiters, lastPos);
+CPPUNIT_TEST_SUITE_REGISTRATION(CHECKNAME);
 
-	while (std::string::npos != pos || std::string::npos != lastPos)
+class CHECKNAME : public CppUnit::TestFixture {
+	CPPUNIT_TEST_SUITE(CHECKNAME);
+	CPPUNIT_TEST(fdleaks);
+	CPPUNIT_TEST_SUITE_END();
+
+	public:
+	enum class checkState : uint8_t {
+		Start,
+		Inter,
+		End
+	};
+
+	enum class checkEvent : uint8_t {
+		Event,
+		Quit
+	};
+
+	friend class Bren::StateMachine<checkState, checkEvent, CHECKNAME>;
+
+	void funccall()
 	{
-		// Found a token, add it to the vector.
-		tokens.push_back(str.substr(lastPos, pos - lastPos));
+		Bren::StateMachine<checkState, checkEvent, CHECKNAME> sm;
+		sm.transition(checkState::Start, checkEvent::Event, checkState:Inter, nullptr, nullptr);
+		sm.transition(checkState::Start, checkEvent::Quit, checkState:End, nullptr, nullptr);
+		sm.transition(checkState::Inter, checkEvent::Quit, checkState:End, nullptr, nullptr);
 
-		// Skip delimiters.  Note the "not_of"
-		lastPos = str.find_first_not_of(delimiters, pos);
-
-		// Find next "non-delimiter"
-		pos = str.find_first_of(delimiters, lastPos);
 	}
-}

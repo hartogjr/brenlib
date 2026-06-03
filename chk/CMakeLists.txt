@@ -40,6 +40,7 @@ add_executable (brenchk
 	observing.cpp
 	readcsv.cpp
 	singleton.cpp
+	statemachine.cpp
 	table.cpp
 )
 
