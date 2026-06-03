@@ -28,16 +28,62 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <bren/StateMachine.hpp>
 
 #define CHECKNAME StateMachineCheck
 
+using std::placeholders::_1, std::placeholders::_2;
+
 class CHECKNAME;
 
 CPPUNIT_TEST_SUITE_REGISTRATION(CHECKNAME);
+
+enum class checkState : uint8_t {
+	Start,
+	Inter,
+	End
+};
+
+enum class checkEvent : uint8_t {
+	Event,
+	Quit
+};
+
+class CallReporter : public std::enable_shared_from_this<CallReporter> {
+
+	private:
+	struct Priv { explicit Priv() = default; };
+
+	public:
+	std::vector<std::pair<checkState, std::string>> called;
+
+	// Constructor is only usable by this class
+	CallReporter(Priv) {}
+
+	static std::shared_ptr<CallReporter> create()
+	{
+		return std::make_shared<CallReporter>(Priv());
+	}
+
+	std::shared_ptr<CallReporter> getptr()
+	{
+		return shared_from_this();
+	}
+
+	bool callback(const checkState st, const std::string & stnam)
+	{
+		called.emplace_back(std::make_pair(st, stnam));
+		return st != checkState::End;
+	}
+
+};
 
 class CHECKNAME : public CppUnit::TestFixture {
 	CPPUNIT_TEST_SUITE(CHECKNAME);
@@ -45,34 +91,27 @@ class CHECKNAME : public CppUnit::TestFixture {
 	CPPUNIT_TEST(funccall);
 	CPPUNIT_TEST_SUITE_END();
 
+	friend class Bren::StateMachine<checkState, checkEvent, CallReporter>;
+
 	protected:
 	/// State machine instance for easy setup and teardown
-	std::unique_ptr<Bren::StateMachine<checkState, checkEvent, CHECKNAME>> smup;
+	std::unique_ptr<Bren::StateMachine<checkState, checkEvent, CallReporter>> smup;
 
 	public:
-	enum class checkState : uint8_t {
-		Start,
-		Inter,
-		End
-	};
-
-	enum class checkEvent : uint8_t {
-		Event,
-		Quit
-	};
-
-	friend class Bren::StateMachine<checkState, checkEvent, CHECKNAME>;
 
 	void setUp()
 	{
 		smup.reset(
-			new Bren::StateMachine<checkState, checkEvent, CHECKNAME>(
+			new Bren::StateMachine<checkState, checkEvent, CallReporter>(
 				checkState::Start, checkState::End
 			)
 		);
-		smup->transition(checkState::Start, checkEvent::Event, checkState:Inter, nullptr, nullptr);
-		smup->transition(checkState::Start, checkEvent::Quit, checkState:End, nullptr, nullptr);
-		smup->transition(checkState::Inter, checkEvent::Quit, checkState:End, nullptr, nullptr);
+		STATE_MACHINE_TRANSITION(
+			(*smup), checkState::Start, checkEvent::Event, checkState::Inter, nullptr, nullptr);
+		STATE_MACHINE_TRANSITION(
+			(*smup), checkState::Start, checkEvent::Quit, checkState::End, nullptr, nullptr);
+		STATE_MACHINE_TRANSITION(
+			(*smup), checkState::Inter, checkEvent::Quit, checkState::End, nullptr, nullptr);
 	}
 
 	void tearDown()
@@ -123,5 +162,20 @@ class CHECKNAME : public CppUnit::TestFixture {
 
 	void funccall()
 	{
+		auto cr = CallReporter::create();
+		CPPUNIT_ASSERT_NO_THROW(smup->obj(cr));
+		CPPUNIT_ASSERT_NO_THROW(smup->observe(std::bind(&CallReporter::callback, cr, _1, _2)));
 
+		// Check that adding an observer already calls the callback with the current state
+		CPPUNIT_ASSERT_EQUAL(1UL, cr->called.size());
+		CPPUNIT_ASSERT_EQUAL(checkState::Start, cr->called.at(0).first);
+		CPPUNIT_ASSERT_EQUAL(std::string("Start"), cr->called.at(0).second);
+
+		// Actually transition
+		CPPUNIT_ASSERT(smup->event(checkEvent::Event, true));
+		CPPUNIT_ASSERT_EQUAL(2UL, cr->called.size());
+		CPPUNIT_ASSERT_EQUAL(checkState::Inter, cr->called.at(1).first);
+		CPPUNIT_ASSERT_EQUAL(std::string("Inter"), cr->called.at(1).second);
 	}
+
+}; // CHECKNAME class

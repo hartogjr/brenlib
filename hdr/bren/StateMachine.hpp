@@ -120,22 +120,22 @@ namespace Bren
 
 		/** Lookup the name of an event.
 		 * @param event_i Event to lookup the name for
-		 * @returns Name of a event if found, the state number (as string) if not. */
+		 * @returns Name of a event if found, the state number if not. */
 		std::string name_(const EVENT event_i) const {
 			const auto & it = events_.find(event_i);
 			if (it == events_.end()) {
-				return fmt::format(fmt::runtime("{:s}"), fmt::underlying(event_i));
+				return fmt::format(fmt::runtime("{:d}"), fmt::underlying(event_i));
 			}
 			return it->second;
 		}
 
 		/** Lookup the name of a state.
 		 * @param state_i State to lookup the name for
-		 * @returns Name of a state if found, the state number (as string) if not. */
+		 * @returns Name of a state if found, the state number if not. */
 		std::string name_(const STATE state_i) const {
 			const auto & it = states_.find(state_i);
 			if (it == states_.end()) {
-				return fmt::format(fmt::runtime("{:s}"), fmt::underlying(state_i));
+				return fmt::format(fmt::runtime("{:d}"), fmt::underlying(state_i));
 			}
 			return it->second;
 		}
@@ -168,6 +168,8 @@ namespace Bren
 					name_(event_i), name_(from_i), name_(to_i));
 				lck.unlock();
 				if (onTrans_i != nullptr) {
+					FCET(obj_, std::runtime_error,
+						"Shared pointer to object for function calling not set");
 					if (onTrans_i(obj_.get())) {
 						FI("onTransition function on event {:s} from state {:s} to "
 							"{:s} completed!!", name_(event_i), name_(from_i), name_(to_i));
@@ -192,6 +194,8 @@ namespace Bren
 				lck.unlock();
 
 				if (inState_i != nullptr) {
+					FCET(obj_, std::runtime_error,
+						"Shared pointer to object for function calling not set");
 					FD("Executing inState function after transition from {:s} to {:s} on {:s}",
 						name_(from_i), name_(to_i), name_(event_i));
 					inState_i(obj_.get());
@@ -255,7 +259,6 @@ namespace Bren
 
 			FCIR(!active(), false, "Event handling still in progress");
 			FCER(state_ != end_, false, "State machine already in end state {:s}", name_(end_));
-			FCER(obj_, false, "Shared pointer to object for function calling not set");
 
 			auto const src = trans_.find(state_);
 			FCWR(src != trans_.end(), false,
