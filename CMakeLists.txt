@@ -41,29 +41,28 @@ endif()
 
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-project (bren)
+# Set the Git repository root directory
+execute_process (
+	COMMAND git rev-parse --show-toplevel
+	OUTPUT_VARIABLE REPOROOT
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+project (bren CXX)
 
 # Custom C/C++ flags
-set (CUSTOM_FLAGS   "-Wall -Werror -Wextra -Wno-varargs")
-set (CUSTOM_DEBUG   "-O0 -g3 -ggdb")
-set (CUSTOM_RELEASE "-O3")
+# -Wno-varargs is necessary for Logger class to allow empty VARARGS
+add_compile_options (-Wall -Werror -Wextra -Wno-varargs "-DREPOROOT=${REPOROOT}")
+set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -ggdb")
+set (CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG=1")
 
 # Common linker flags
 set (CMAKE_EXE_LINKER_FLAGS_DEBUG   "${CMAKE_EXE_LINKER_FLAGS}")
 set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS} -s")
 
-# Plain C flags
-set (CMAKE_C_FLAGS         "${CUSTOM_FLAGS}")
-set (CMAKE_C_FLAGS_DEBUG   "${CUSTOM_DEBUG}")
-set (CMAKE_C_FLAGS_RELEASE "${CUSTOM_RELEASE}")
-
-# C++ flags, mostly the same as C
-set (CMAKE_CXX_FLAGS         "${CUSTOM_FLAGS}")
-set (CMAKE_CXX_FLAGS_DEBUG   "${CUSTOM_DEBUG}")
-set (CMAKE_CXX_FLAGS_RELEASE "${CUSTOM_RELEASE}")
-
 # Find necessary packages
 find_package (Boost REQUIRED COMPONENTS program_options system)
+find_package (concurrentqueue REQUIRED)
 find_package (fmt REQUIRED)
 find_package (Threads REQUIRED)
 

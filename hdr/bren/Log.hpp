@@ -1,6 +1,6 @@
 /* BSD 3-Clause License
  *
- * Copyright © 2025, Bren de Hartog <bren@dehartog.name>
+ * Copyright © 2026, Bren de Hartog <bren@dehartog.name>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <cstdint>
 #include <cstring>
@@ -42,7 +43,6 @@
 #include <thread>
 #include <fmt/format.h>
 #include <bren/commondefs.hpp>
-#include <bren/Singleton.hpp>
 
 /** @{ Easy logging macros that use libFmt formatting. */
 #ifndef NDEBUG
@@ -55,7 +55,8 @@
 #define FCD(cond, str, ...) if (!(cond)) { Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::debug, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); }
 
-/** log a Conditional libFmt formatted Debug string and execute an additional Action when condition does not hold */
+/** log a Conditional libFmt formatted Debug string and execute an additional Action when condition
+ * does not hold */
 #define FCDA(cond, action, str, ...) if (!(cond)) { \
 	Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::debug, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); \
@@ -75,14 +76,16 @@
 #define FCI(cond, str, ...) if (!(cond)) { Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::info, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); }
 
-/** log a Conditional libFmt formatted Informational string and execute an additional Action when condition does not hold */
+/** log a Conditional libFmt formatted Informational string and execute an additional Action when
+ * condition does not hold */
 #define FCIA(cond, action, str, ...) if (!(cond)) { \
 	Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::info, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); \
 	action; \
 }
 
-/** log a Conditional libFmt formatted Informational string and Return when condition does not hold */
+/** log a Conditional libFmt formatted Informational string and Return when condition does not hold
+ */
 #define FCIR(cond, ret, str, ...) if (!(cond)) { \
 	Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::info, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); \
@@ -97,7 +100,8 @@
 #define FCN(cond, str, ...) if (!(cond)) { Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::notice, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); }
 
-/** log a Conditional libFmt formatted Notification string and execute an additional Action when condition does not hold */
+/** log a Conditional libFmt formatted Notification string and execute an additional Action when
+ * condition does not hold */
 #define FCNA(cond, action, str, ...) if (!(cond)) { \
 	Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::notice, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); \
@@ -112,7 +116,8 @@
 #define FCW(cond, str, ...) if (!(cond)) { Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::warning, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); }
 
-/** log a Conditional libFmt formatted Warning string and execute an additional Action when condition does not hold */
+/** log a Conditional libFmt formatted Warning string and execute an additional Action when
+ * condition does not hold */
 #define FCWA(cond, action, str, ...) if (!(cond)) { \
 	Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::warning, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); \
@@ -140,7 +145,8 @@
 	Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::error, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); }
 
-/** log a Conditional libFmt formatted Error string and execute an additional Action when condition does not hold */
+/** log a Conditional libFmt formatted Error string and execute an additional Action when condition
+ * does not hold */
 #define FCEA(cond, action, str, ...) if (!(cond)) { \
 	Bren::Logger::instance()->log(__FILE__, __LINE__, \
 		Bren::Logger::error, fmt::format(FMT_STRING(str), ##__VA_ARGS__)); \
@@ -166,61 +172,72 @@ class LoggerCheck;
 
 namespace Bren {
 
-	class Logger : public Bren::Singleton<Logger> {
-			/// Singleton template as friend for construction
-			friend class Bren::Singleton<Logger>;
+	/** Class scope for administering logging settings.
+	 * This class is not meant to be constructed. It simply contains the static logging settings and
+	 * static methods to manage the settings and log messages. */
+	class Log {
+		/// Check class is a friend
+		friend class ::LogCheck;
 
-			/// Check class is also a friend
-			friend class ::LoggerCheck;
+		public:
+		/// Logging levels, taken from /usr/include/sys/syslog.h
+		enum class Level : uint8_t {
+			Emergency = LOG_EMERG,
+			Alert = LOG_ALERT,
+			Critical = LOG_CRIT,
+			Error = LOG_ERR,
+			Warning = LOG_WARNING,
+			Notice = LOG_NOTICE,
+			Info = LOG_INFO,
+			Debug = LOG_DEBUG
+		};
+
+		/// Logging destinations
+		enum class Destination : uint8_t {
+			Stream,
+			Syslog,
+			Queue
+		};
+
+		static const std::array<const char [], 8> levelStrings;
 
 		private:
-			/// Default constructor
-			Logger();
+		/// Default constructor
+		Log() = delete;
 
-			/// Copy constructor
-			Logger(const Logger & obj_i) = delete;
+		/// Copy constructor
+		Log(const Logger &) = delete;
 
-			/// Assignment constructor
-			Logger & operator=(const Logger & obj_i) = delete;
+		/// Assignment constructor
+		Log & operator=(const Log &) = delete;
 
-			/// Destructor
-			~Logger();
+		/// Destructor
+		~Log() = delete;
 
-		public:
-			/// Definition of logging levels
-			enum loglevel_t : uint8_t {
-				none = LOG_CRIT,
-				error = LOG_ERR,
-				warning = LOG_WARNING,
-				notice = LOG_NOTICE,
-				info = LOG_INFO,
-				debug = LOG_DEBUG
-			};
+		/// Current logging destination
+		static Destination dest_;
 
-		protected:
-			/** Maintain a local string for syslog program identification,
-			 * because openlog does not copy it. */
-			std::string ident_;
+		/// Syslog program identification
+		static std::string ident_;
 
-			/// Textual syslog levels map.
-			std::map<loglevel_t, std::string> levels_;
+		/// Textual syslog levels map.
+		std::map<loglevel_t, std::string> levels_;
 
-			/// Maximum log level to log.
-			std::atomic<loglevel_t> maxlevel_;
+		/// Maximum log level to log.
+		static std::atomic<Level> maxlevel_;
 
-			/// Internal mutex to be MT safe
-			std::mutex mymux_;
+		/// Internal mutex to be MT safe
+		static std::mutex mux_;
 
-			/// Stream to write to
-			std::ostream * stream_;
+		/// Stream to write to
+		static std::ostream * stream_;
 
-			/// Characters to strip from beginning of filenames
-			size_t strip_;
-
-			/// True when logging to syslog, false when logging to stderr
-			bool syslog_;
+		/// Characters to strip from beginning of filenames
+		static size_t strip_;
 
 		public:
+		/** Get the current log destination. */
+		inline Destination destination() const { return dest_; }
 
 			/** Check whether the current logging destination is syslog.
 			 * @returns True if logging to syslog, false if logging to

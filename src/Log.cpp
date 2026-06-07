@@ -1,5 +1,5 @@
 /** @author   Bren de Hartog <bren@dehartog.name>
- * @copyright Copyright (c) 2026, Bren de Hartog. All rights reserved.
+ * @copyright Copyright © 2026, Bren de Hartog. All rights reserved.
  * @license   This project is licensed under 3-clause BSD license:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,18 +38,29 @@
 #include <fmt/format.h>
 #include <fmt/printf.h>
 #include <sys/time.h>
-#include <bren/Logger.hpp>
+#include <bren/Log.hpp>
 
 namespace Bren
 {
-	Logger::Logger() : maxlevel_(Logger::debug), stream_(nullptr), strip_(0), syslog_(false)
-	{
-		levels_[error] = "ERROR";
-		levels_[warning] = "WARNING";
-		levels_[notice] = "NOTICE";
-		levels_[info] = "INFO";
-		levels_[debug] = "DEBUG";
-	}
+
+	/// @{ Allocation of private static attributes
+	Log::Destination Log::dest_ = Log::Destination::Stream;
+	std::string Log::ident_;
+	std::atomic<Log::Level> maxlevel_ = Log::Level::Debug;
+	std::mutex Log::mux_;
+	std::ostream * Log::stream_ = &std::cerr;
+	size_t Log::strip_ = 0;
+	const std::array<const char [], 8> Log::levelStrings {
+		"EMERGENCY",  // LOG_EMERG
+		"ALERT",      // LOG_ALERT
+		"CRITICAL",   // LOG_CRIT
+		"ERROR",      // LOG_ERR
+		"WARNING",    // LOG_WARNING
+		"NOTICE",     // LOG_NOTICE
+		"INFO",       // LOG_INFO
+		"DEBUG"       // LOG_DEBUG
+	};
+	/// @}
 
 	Logger::~Logger()
 	{

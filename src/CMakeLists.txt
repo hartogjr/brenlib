@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2025, Bren de Hartog <bren@dehartog.name>
+# Copyright © 2026, Bren de Hartog <bren@dehartog.name>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,7 @@ target_link_libraries (bren
 		${CMAKE_THREAD_LIBS_INIT}
 	PUBLIC
 		${Boost_LIBRARIES}
+		concurrentqueue::concurrentqueue
 		${CPPUNIT_LIBRARY}
 		fmt::fmt
 )
