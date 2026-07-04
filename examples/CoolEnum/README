@@ -1,0 +1,30 @@
+CoolEnum usage template
+
+Pattern summary:
+
+1. Create a .def file (e.g., hdr/<module>/Name.def) that contains the COOLENUM macros:
+   - #include <cstdint>
+   - COOLENUM_BEGIN(Name, uint8_t)
+   - COOLENUM(...)
+   - COOLENUM_END()
+
+2. In the public header (hdr/<module>/Name.hpp):
+   - #include <bren/CoolEnum.hpp.hpp>
+   - namespace ... {
+   - #include "Name.def"
+   - }
+
+3. In the implementation (src/Name.cpp):
+   - #include <bren/CoolEnum.cpp.hpp>
+   - namespace ... {
+   - #include "../hdr/<module>/Name.def"  // adjust path for include roots
+   - }
+
+Notes:
+- Keep the .def file minimal and only containing the COOLENUM_* macros.
+- The header uses the CoolEnum.hpp.hpp definitions (declarations).
+- The source uses CoolEnum.cpp.hpp (definitions that fill maps).
+- Adjust include paths to match your build's header search paths.
+
+Example: see hdr/sqliteschemata/ColumnType.def, hdr/sqliteschemata/ColumnType.hpp,
+and src/ColumnType.cpp in this repo.

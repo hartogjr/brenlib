@@ -1,0 +1,12 @@
+// Example CoolEnum .def template for use with bren/CoolEnum helpers
+// Place a .def file in hdr/<module>/Name.def and include it from both
+// the header and the source. Use the bren COOLENUM macros exactly as
+// in the examples (COOLENUM_BEGIN/COOLENUM/COOLENUM_END).
+
+#include <cstdint>
+
+COOLENUM_BEGIN(MyEnum, uint8_t)
+COOLENUM(FOO, 0x01)
+COOLENUM(BAR, 0x02)
+COOLENUM(BAZ, 0x03)
+COOLENUM_END()
