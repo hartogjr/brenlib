@@ -63,7 +63,7 @@ set (CMAKE_CXX_FLAGS_DEBUG   "${CUSTOM_DEBUG}")
 set (CMAKE_CXX_FLAGS_RELEASE "${CUSTOM_RELEASE}")
 
 # Find necessary packages
-find_package (Boost REQUIRED COMPONENTS program_options system)
+find_package (Boost REQUIRED COMPONENTS program_options)
 find_package (fmt REQUIRED)
 find_package (Threads REQUIRED)
 
